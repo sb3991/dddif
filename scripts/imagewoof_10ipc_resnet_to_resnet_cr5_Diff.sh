@@ -1,0 +1,13 @@
+python ./main.py \
+--subset "imagenet-woof" \
+--arch-name "resnet18" \
+--factor 1 \
+--num-crop 5 \
+--mipc 300 \
+--ipc 50 \
+--stud-name "resnet18" \
+--re-epochs 3000 \
+--classifier_scale 100 \
+--prompt_strength  7.5 \
+--exp_id "schedule_0.9_0.5_100" \
+--num_inference_steps 50 \
