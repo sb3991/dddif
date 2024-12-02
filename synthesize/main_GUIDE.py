@@ -201,7 +201,7 @@ def objective_function(pipe,prompts, images, class_names, classifier_scale, nega
                     guidance_scale=guidance_scale,
                     gradient_scale=classifier_scale,
                     #num_inference_steps=inference_steps,
-                    num_inference_steps=20,
+                    num_inference_steps=10,
                     negative_prompt=negative_prompts,
                     early_stage_end=early_stage,
                     late_stage_start=late_stage,
@@ -211,10 +211,11 @@ def objective_function(pipe,prompts, images, class_names, classifier_scale, nega
     gen_imgs = gen_imgs.transpose(0,3,1,2)
     #print(f'gen imgs {gen_imgs.shape}')
     gen_imgs = torch.from_numpy(gen_imgs)
-    soft_mix_label_0 = teacher_model(images)
+    soft_mix_label_0 = teacher_model(gen_imgs)
     soft_mix_label = F.softmax(soft_mix_label_0 / args.temperature, dim=1)
     pred_conf = soft_mix_label[:,int(class_names[0])].mean()
     ret = pred_conf - baseline
+    #print(f'pred_conf {pred_conf} baseline {baseline} ret {ret}')
     return ret.cpu().item()
     
 
@@ -426,11 +427,12 @@ def main(args):
         num_classes = 1000  # tinyimagenet 클래스 수
     else:
         num_classes = 100  # CIFAR-100, imagenet-100 클래스 수
-    classifier = ResNetLatentClassifier(input_channels, num_classes)
+    # classifier = ResNetLatentClassifier(input_channels, num_classes)
     # classifier = ImprovedLatentMLP(input_channels=input_channels, input_size=input_size, hidden_dim=hidden_dim, num_classes=num_classes, num_layers=4)
-    classifier.load_state_dict(torch.load(model_path))
-    classifier = classifier.to("cuda").half()
-    classifier.eval()
+    # classifier.load_state_dict(torch.load(model_path))
+    # classifier = classifier.to("cuda").half()
+    # classifier.eval()
+    classifier = None
     pipe.set_classifier(classifier)
 
     pipe.set_progress_bar_config(disable=True)
@@ -438,7 +440,6 @@ def main(args):
     classifier_scale=args.classifier_scale
     early_stage=args.early_stage
     late_stage=args.late_stage
-    
     teacher_model = load_model(
         model_name=args.arch_name,
         dataset=args.subset,

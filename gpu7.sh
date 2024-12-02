@@ -1,9 +1,12 @@
 CUDA_VISIBLE_DEVICES=2
-# RUN="python"
-#RUN="sh"
+
+RUN="sh"
 #FILE="/home/sb/link/DD_DIF/scripts/cifar100_1ipc_conv3_to_conv3_cr5.sh"
 #FILE="/home/sb/link/DD_DIF/scripts/imagenet-100_10ipc_conv6_to_conv6_cr5.sh"
-for file in /home/sb/link/DD_DIF/scripts/*.sh; do
-    bash "$file"
-done
-#$RUN $FILE
+FILE="/home/sb/link/DD_DIF/scripts/imagenet-1k_10ipc_resnet-18_to_resnet-50_cr1.sh"
+$RUN $FILE
+
+
+#for file in /home/sb/link/DD_DIF/scripts/*.sh; do
+#    bash "$file"
+#done

@@ -175,7 +175,8 @@ def main(args):
         # else:
         #     shutil.rmtree(save_path)
         #     os.makedirs(save_path)
-
+       # model_teacher= models.__dict__[args.arch_name](weights='DEFAULT')
+        
         model_teacher = load_model(
             model_name=args.arch_name,
             dataset=args.subset,

@@ -171,9 +171,9 @@ parser.add_argument(
 args = parser.parse_args()
 
 #args.train_dir = f"/home/sb/link/DD_DIF/Data/{args.subset}/train/"
+
 args.train_dir = f"/home/sb/link/DD_DIF/Data/{args.subset}/train/"
 args.val_dir = f"/home/sb/link/DD_DIF/Data/{args.subset}/val/"
-
 # set up dataset settings
 # set smaller val_ipc only for quick validation
 if args.subset in [
@@ -280,6 +280,8 @@ if args.re_accum_steps != 1:
 args.exp_name = f"{args.subset}_{args.arch_name}_f{args.factor}_mipc{args.mipc}_ipc{args.ipc}_cr{args.num_crop}_{args.exp_id}"
 if not os.path.exists(f"./exp/{args.exp_name}"):
     os.makedirs(f"./exp/{args.exp_name}")
+
+
 args.syn_data_path = os.path.join("./exp/" + args.exp_name, args.syn_data_path)
 
 # temperature
