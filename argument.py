@@ -168,6 +168,12 @@ parser.add_argument(
     default='id',
     help="name of the experiment",
 )
+parser.add_argument(
+    "--pipeline",
+    type=str,
+    default='stablediffusion',
+    help="name of the experiment",
+)
 args = parser.parse_args()
 
 #args.train_dir = f"/home/sb/link/DD_DIF/Data/{args.subset}/train/"
@@ -277,7 +283,7 @@ if args.re_accum_steps != 1:
     args.re_batch_size = int(args.re_batch_size / args.re_accum_steps)
 
 # result dir for saving
-args.exp_name = f"{args.subset}_{args.arch_name}_stud{args.stud_name}_f{args.factor}_mipc{args.mipc}_ipc{args.ipc}_cr{args.num_crop}_{args.exp_id}"
+args.exp_name = f"{args.subset}_{args.arch_name}_stud{args.stud_name}_pipe_{args.pipeline}_f{args.factor}_mipc{args.mipc}_ipc{args.ipc}_cr{args.num_crop}_{args.exp_id}"
 if not os.path.exists(f"./exp/{args.exp_name}"):
     os.makedirs(f"./exp/{args.exp_name}")
 

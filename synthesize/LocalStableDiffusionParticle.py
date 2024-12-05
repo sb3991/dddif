@@ -287,7 +287,7 @@ class StableDiffusionParticlePipeline(StableDiffusionImg2ImgPipeline):
 
                 noise_pred = noise_pred_text + guidance_scale * (noise_pred_text - noise_pred_uncond) - grad_phi
                 # compute the previous noisy sample x_t -> x_t-1
-                out = self.scheduler.step(noise_pred, i, latents, **extra_step_kwargs)
+                out = self.scheduler.step(model_output=noise_pred, timestep=i, sample=latents,uncond_model_output=noise_pred_uncond,lambda_scale=guidance_scale, **extra_step_kwargs)
                 latents_next = out.prev_sample
 
                 latents = latents_next

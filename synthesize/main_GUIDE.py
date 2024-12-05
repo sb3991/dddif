@@ -237,8 +237,8 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
                                    negative_prompts=negative_prompts, early_stage=early_stage,
                                    late_stage=late_stage ,teacher_model=teacher_model, args=args)
                 pbounds = {
-                    'strength': (0.6, 1.0),      # Example range for guidance scale
-                    'guidance_scale': (0.5, 1.0)   # Example range for strength
+                    'strength': (0.2, 1.0),      # Example range for guidance scale
+                    'guidance_scale': (0.2, 1.0)   # Example range for strength
                 }
                 # Initialize Bayesian Optimizer
                 optimizer = BayesianOptimization(
@@ -249,7 +249,7 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
 
                 # Run optimization
                 optimizer.maximize(
-                    init_points=5,         # Number of random initial samples
+                    init_points=10,         # Number of random initial samples
                     n_iter=3,             # Number of optimization iterations
                 )
                 # Print the best parameters
@@ -396,23 +396,24 @@ def main(args):
     scheduler = DPMSolverMultistepScheduler.from_pretrained(model_id, subfolder="scheduler")
 
     unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet").half()
-    pipe = LocalStableDiffusionPipeline.from_pretrained(
-        model_id,
-        unet=unet,
-        scheduler=scheduler,
-        safety_checker=None,
-        #num_inference_steps=inference_step,
-        torch_dtype=torch.float16
-    ).to("cuda")
-    '''
-    pipe = StableDiffusionParticlePipeline.from_pretrained(
-        model_id,
-        unet=unet,
-        scheduler=scheduler,
-        saftey_checker=None,
-        torch_dtype=torch.float16
-    ).to("cuda")
-    '''
+    if args.pipeline != 'particle':
+        pipe = LocalStableDiffusionPipeline.from_pretrained(
+            model_id,
+            unet=unet,
+            scheduler=scheduler,
+            safety_checker=None,
+            #num_inference_steps=inference_step,
+            torch_dtype=torch.float16
+        ).to("cuda")
+    else:
+        pipe = StableDiffusionParticlePipeline.from_pretrained(
+            model_id,
+            unet=unet,
+            scheduler=scheduler,
+            saftey_checker=None,
+            torch_dtype=torch.float16
+        ).to("cuda")
+    
     # model_path = "/home/sb/link/DD_DIF/additional_trained_models/cifar100_Tr_5.pth" #100_lr
     model_path = f"/home/sb/link/DD_DIF/additional_trained_models/{args.subset}.pth" #100_lr
 

@@ -1,4 +1,4 @@
-CUDA_VISIBLE_DEVICES=1
+CUDA_VISIBLE_DEVICES=3
 
 RUN="sh"
 #FILE="/home/sb/link/DD_DIF/scripts/cifar100_1ipc_conv3_to_conv3_cr5.sh"
