@@ -311,7 +311,7 @@ def load_model(model_name="resnet18", dataset="cifar10", pretrained=True, classe
             "imagenet-woof",
             "tinyimagenet",
             "cifar10",
-            #"cifar100",
+            "cifar100",
         ]:
             checkpoint = torch.load(
                 f"./data/pretrained_models/{dataset}_{model_name}.pth", map_location="cpu"

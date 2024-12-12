@@ -6,4 +6,5 @@ python ./main.py \
 --mipc 300 \
 --ipc 10 \
 --stud-name "resnet18_modified" \
---re-epochs 1900
+--re-epochs 1000 \
+--pipeline "particle"

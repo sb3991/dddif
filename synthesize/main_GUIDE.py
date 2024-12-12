@@ -187,7 +187,7 @@ def get_max_image_size(image_root):
     return max_width, max_height
 
 def objective_function(pipe,prompts, images, class_names, classifier_scale, negative_prompts, early_stage ,late_stage,teacher_model=None, args=None ,strength=0.0, guidance_scale=0.0):
-    strength, guidance_scale = 0.8, 0.6
+    #strength, guidance_scale = 0.8, 0.6
     transform = transforms.Compose([transforms.Resize(args.input_size)])
     images = transform(images)
     soft_mix_label_0 = teacher_model(images)
@@ -237,8 +237,8 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
                                    negative_prompts=negative_prompts, early_stage=early_stage,
                                    late_stage=late_stage ,teacher_model=teacher_model, args=args)
                 pbounds = {
-                    'strength': (0.2, 1.0),      # Example range for guidance scale
-                    'guidance_scale': (0.2, 1.0)   # Example range for strength
+                    'strength': (0.6, 1.0),      # Example range for guidance scale
+                    'guidance_scale': (0.4, 1.0)   # Example range for strength
                 }
                 # Initialize Bayesian Optimizer
                 optimizer = BayesianOptimization(
