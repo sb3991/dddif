@@ -4,6 +4,7 @@ python ./main.py \
 --factor 1 \
 --num-crop 5 \
 --mipc 300 \
---ipc 10 \
+--ipc 1 \
 --stud-name "resnet18_modified" \
+--pipeline "particle" \
 --re-epochs 300

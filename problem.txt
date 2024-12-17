@@ -1,0 +1,22 @@
+할일
+
+tiny -> 실험
+setting: 64*64, cfg++ && particle guidance, step = 40
+
+문제?
+1. resolution?? -> 일단은 64*64
+
+2. cfg++ 과 particle 결합문제
+    -잠정적 솔루션: scaling 할것 
+
+3. particle guidance step 문제
+
+cifar100 convnet 실험할것
+
+
+what's next?
+
+1. cifar 128 
+2. step 50
+3. ipc 50에서 실험
+4. cfg++ scaling 부분 실험

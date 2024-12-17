@@ -89,47 +89,7 @@ class LocalStableDiffusionPipeline(StableDiffusionImg2ImgPipeline): #
                     noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
                     noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
                     # print("guidance_scale",  guidance_scale)
-
-
-
-                # Classifier guidance
-                if False and self.classifier is not None and class_labels is not None and gradient_scale!=0:
-                    #print("Do Classifier Guidance!")
-                    with torch.enable_grad():
-                        # print("t", t)
-                        latents = latents.detach().requires_grad_()
-                        class_scores = self.classifier(latents, t/max_timestep)#, 
-                        # print("t/max_timestep", t/max_timestep)
-
-                        predicted_classes = class_scores.argmax(dim=1)
-                        correct_predictions = (predicted_classes == class_labels).float()
-                        accuracy = correct_predictions.sum() / len(class_labels)
-                        
-                        # 클래스 변수 업데이트
-                        self.__class__.total_accuracy += accuracy.item()
-                        self.__class__.accuracy_count += 1
-                        
-                        # 매 10 스텝마다 평균 정확도 출력 (또는 원하는 간격으로 조정)
-                        if self.__class__.accuracy_count % 500 == 0 and self.__class__.accuracy_count > 0:
-                            avg_accuracy = self.__class__.total_accuracy / self.__class__.accuracy_count
-                            print(f"Average Classifier Accuracy (Count {self.__class__.accuracy_count}): {avg_accuracy * 100:.2f}%")
-
-                        class_loss = -torch.log_softmax(class_scores, dim=1).gather(1, class_labels.unsqueeze(1)).squeeze()
-                        grad = torch.autograd.grad(class_loss.sum(), latents)[0]
-                    with torch.no_grad():
-
-                        noise_pred_mean, noise_pred_std = torch.mean(noise_pred), torch.std(noise_pred)
-
-                        # 2. gradient_scale * (1-self.scheduler.alphas_cumprod[t]).sqrt() * grad 값을 더함
-                        noise_pred = noise_pred + gradient_scale * (1 - self.scheduler.alphas_cumprod[t]).sqrt() * grad
-
-                        # 3. Rescale 단계: 원래 noise_pred의 평균과 표준편차로 다시 맞춤
-                        # noise_pred_rescaled = (noise_pred - torch.mean(noise_pred)) / torch.std(noise_pred) * noise_pred_std + noise_pred_mean
-                        # noise_pred = noise_pred_rescaled
-                        latents = latents.detach()
-                        # print("gradient_scale",  gradient_scale)
-                
-
+             
                 # compute the previous noisy sample x_t -> x_t-1
                 latents = self.scheduler.step(model_output=noise_pred, timestep=t, sample=latents, uncond_model_output=noise_pred_uncond,lambda_scale=guidance_scale, **extra_step_kwargs).prev_sample
 

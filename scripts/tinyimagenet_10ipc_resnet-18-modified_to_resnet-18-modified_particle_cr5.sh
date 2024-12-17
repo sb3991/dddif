@@ -4,7 +4,7 @@ python ./main.py \
 --factor 1 \
 --num-crop 5 \
 --mipc 300 \
---ipc 10 \
+--ipc 50 \
 --stud-name "resnet18_modified" \
---re-epochs 1000 \
+--re-epochs 300 \
 --pipeline "particle"
