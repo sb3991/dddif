@@ -7,4 +7,5 @@ python ./main.py \
 --ipc 10 \
 --stud-name "conv4" \
 --re-epochs 300 \
+--pipeline "particle"
 # --sgd

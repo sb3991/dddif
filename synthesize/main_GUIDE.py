@@ -29,76 +29,6 @@ from functools import partial
 
 
 
-class TimeEmbedding(nn.Module):
-    def __init__(self, dim):
-        super().__init__()
-        self.dim = dim
-        self.linear1 = nn.Linear(1, dim, dtype=torch.float16)
-        self.linear2 = nn.Linear(dim, dim, dtype=torch.float16)
-
-    def forward(self, t):
-        t = t.half().view(-1, 1)
-        t = torch.sin(self.linear1(t))
-        t = self.linear2(t)
-        return t
-
-class ResNetLatentClassifier(nn.Module):
-    def __init__(self, input_channels, num_classes, time_dim=128):
-        super().__init__()
-        self.time_embed = TimeEmbedding(time_dim)
-        
-        # Load pre-trained ResNet18
-        self.resnet = models.resnet18(pretrained=True)
-        
-        # Modify the first conv layer to accept input_channels
-        # self.resnet.conv1 = nn.Conv2d(input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
-        
-
-        self.resnet.conv1 = nn.Conv2d(input_channels, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
-        
-        # Replace maxpool with Identity to preserve spatial dimensions
-        self.resnet.maxpool = nn.Identity()
-        
-        # Adjust the final fully connected layer for num_classes
-        # self.resnet.fc = nn.Linear(512, num_classes)
-
-        # Remove the last FC layer and Global Average Pooling layer
-        # Keep the output size large enough by excluding last pooling operation
-        self.resnet = nn.Sequential(*list(self.resnet.children())[:-1])
-        
-        # Convert ResNet to half precision
-        self.resnet = self.resnet.half()
-        
-        # Add new layers
-        # The input size to fc1 will be 2x2x512 = 2048 since we removed GAP
-        self.fc1 = nn.Linear(512 + time_dim, 256, dtype=torch.float16)
-        self.fc2 = nn.Linear(256, num_classes, dtype=torch.float16)
-        
-    def forward(self, x, t):
-        # Ensure input is half precision
-        x = x.half()
-        t = t.half()
-        
-        # ResNet feature extraction (up to the last conv layer)
-        x = self.resnet(x)
-        x = x.view(x.size(0), -1)  # Flatten the output (2x2x512 to 2048)
-        
-        # Time embedding
-        t = self.time_embed(t)
-        
-        # Ensure t has the same batch size as x
-        t = t.expand(x.size(0), -1)
-        
-        # Concatenate features and time embedding
-        x = torch.cat([x, t], dim=1)
-        
-        # Final classification layers
-        x = torch.relu(self.fc1(x))
-        x = self.fc2(x)
-        
-        return x
-
-
 class CustomImagePromptDataset(Dataset):
     def __init__(self, image_root, label_prompt_file, additional_prompt_dir, transform=None):
         self.image_root = image_root
@@ -236,8 +166,8 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
                                    negative_prompts=negative_prompts, early_stage=early_stage,
                                    late_stage=late_stage ,teacher_model=teacher_model, args=args)
                 pbounds = {
-                    'strength': (0.2, 1.0),      # Example range for guidance scale
-                    'guidance_scale': (0.2, 1.0)   # Example range for strength
+                    'strength': (args.strength_lb, args.strength_ub),      # Example range for guidance scale
+                    'guidance_scale': (args.cfg_lb, args.cfg_ub)   # Example range for strength
                 }
                 # Initialize Bayesian Optimizer
                 optimizer = BayesianOptimization(
@@ -254,7 +184,7 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
                 # Print the best parameters
                 print("Best parameters:", optimizer.max)
                 strength, guidance_scale = optimizer.max['params']['strength'], optimizer.max['params']['guidance_scale']          
-                
+
                 generated_images = pipe(
                     prompt=prompts,
                     image=images,
@@ -269,23 +199,12 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
                 ).images
                 resized_images =generated_images #[img.resize(image_size, Image.LANCZOS) for img in generated_images] #
             for i, (img, class_name, prompt, negative_prompt) in enumerate(zip(resized_images, class_names, prompts, negative_prompts)):
-            # for i, (img, class_name) in enumerate(zip(resized_images, class_names)):
                 if class_indices[class_name] < images_per_class:
                     class_dir = os.path.join(output_dir, class_name)
                     os.makedirs(class_dir, exist_ok=True)
 
                     img_index = class_indices[class_name]
                     img.save(os.path.join(class_dir, f"Class_{class_name}_{img_index}.png"))
-
-                    # prompt_filename = f"Prompt_{class_name}_{img_index}.txt"
-                    # prompt_path = os.path.join(class_dir, prompt_filename)
-                    # with open(prompt_path, 'w') as f:
-                    #     f.write(f"Positive prompt: {prompt}\n")
-                    #     f.write(f"Negative prompt: {negative_prompt}\n")
-                    #     f.write(f"Class name: {class_name}\n")
-                    #     f.write(f"Guidance scale: {prompt_strength}\n")
-                    #     f.write(f"Classifier scale: {classifier_scale}\n")
-                    #     f.write(f"Strength: 0.8\n")
 
                     class_indices[class_name] += 1
 
@@ -413,27 +332,6 @@ def main(args):
             torch_dtype=torch.float16
         ).to("cuda")
     
-    # model_path = "/home/sb/link/DD_DIF/additional_trained_models/cifar100_Tr_5.pth" #100_lr
-    model_path = f"/home/sb/link/DD_DIF/additional_trained_models/{args.subset}.pth" #100_lr
-
-    input_channels = 4  # Latent 벡터의 채널 수
-    input_size = 64  # Latent 벡터의 크기
-    hidden_dim = 512
-    if args.subset in ["imagenet-woof", "cifar10", "imagenet-nette"]:
-        num_classes = 10  # CIFAR-100 클래스 수
-    elif args.subset in ["tinyimagenet"]:
-        num_classes = 200  # tinyimagenet 클래스 수
-    elif args.subset in ["imagenet-1k"]:
-        num_classes = 1000  # tinyimagenet 클래스 수
-    else:
-        num_classes = 100  # CIFAR-100, imagenet-100 클래스 수
-    # classifier = ResNetLatentClassifier(input_channels, num_classes)
-    # classifier = ImprovedLatentMLP(input_channels=input_channels, input_size=input_size, hidden_dim=hidden_dim, num_classes=num_classes, num_layers=4)
-    # classifier.load_state_dict(torch.load(model_path))
-    # classifier = classifier.to("cuda").half()
-    # classifier.eval()
-    classifier = None
-    pipe.set_classifier(classifier)
 
     pipe.set_progress_bar_config(disable=True)
     prompt_strength=args.prompt_strength
@@ -459,10 +357,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--syn_data_path", type=str, required=True, help="Path to the root directory of images")
     parser.add_argument("--mipc", type=int, default=500, required=True, help="Number of images to generate per class")
-    # parser.add_argument("--num_inference_steps", type=int, default=50, help="Number of denoising steps")
-    # parser.add_argument("--prompt_strength", type=float, default=7.5, help="Classifier guidance scale")
-    # parser.add_argument("--early_stage", type=float, default=0.9, help="Number of denoising steps")
-    # parser.add_argument("--late_stage", type=float, default=0.5, help="Classifier guidance scale")
 
     args = parser.parse_args()
     main(args)

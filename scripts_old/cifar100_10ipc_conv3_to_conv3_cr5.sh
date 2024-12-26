@@ -3,7 +3,8 @@ python ./main.py \
 --arch-name "conv3" \
 --factor 1 \
 --num-crop 5 \
---mipc 200 \
---ipc 1 \
+--mipc 300 \
+--ipc 10 \
 --stud-name "conv3" \
---re-epochs 300
+--re-epochs 300 \
+--pipeline "particle"

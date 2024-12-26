@@ -174,6 +174,31 @@ parser.add_argument(
     default='stablediffusion',
     help="name of the experiment",
 )
+parser.add_argument(
+    "--strength_lb",
+    type=float,
+    default=0.4,
+    help="strength lower bound",
+)
+parser.add_argument(
+    "--strength_ub",
+    type=float,
+    default=1.0,
+    help="strength upper bound",
+)
+parser.add_argument(
+    "--cfg_lb",
+    type=float,
+    default=4.0,
+    help="cfg lower bound",
+)
+parser.add_argument( 
+    "--cfg_ub",
+    type=float,
+    default=8.0,
+    help="cfg upper bound",
+)
+
 args = parser.parse_args()
 
 #args.train_dir = f"/home/sb/link/DD_DIF/Data/{args.subset}/train/"
@@ -283,10 +308,9 @@ if args.re_accum_steps != 1:
     args.re_batch_size = int(args.re_batch_size / args.re_accum_steps)
 
 # result dir for saving
-args.exp_name = f"{args.subset}_{args.arch_name}_stud{args.stud_name}_pipe_{args.pipeline}_f{args.factor}_mipc{args.mipc}_ipc{args.ipc}_cr{args.num_crop}_{args.exp_id}"
+args.exp_name = f"{args.subset}_{args.arch_name}_stud{args.stud_name}_pipe_{args.pipeline}_f{args.factor}_mipc{args.mipc}_cr{args.num_crop}_str{args.strength_lb}-{args.strength_ub}_cfg{args.cfg_lb}-{args.cfg_ub}"
 if not os.path.exists(f"./exp/{args.exp_name}"):
     os.makedirs(f"./exp/{args.exp_name}")
-
 
 args.syn_data_path = os.path.join("./exp/" + args.exp_name, args.syn_data_path)
 
@@ -336,3 +360,5 @@ if (
 ):
     args.re_batch_size = 25
     args.adamw_lr = 0.002
+
+

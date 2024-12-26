@@ -1,0 +1,28 @@
+experiments:
+  - subset: "cifar10"
+    arch-name: "conv3"
+    factor: 1
+    num-crop: 5
+    mipc: 300
+    ipc: 1
+    stud-name: "conv3"
+    re-epochs: 300
+    pipeline: "particle"
+  - subset: "cifar100"
+    arch-name: "conv3"
+    factor: 1
+    num-crop: 5
+    mipc: 300
+    ipc: 1
+    stud-name: "conv3"
+    re-epochs: 300
+    pipeline: "particle"
+  - subset: "tinyimagenet"
+    arch-name: "resnet18_modified"
+    factor: 1
+    num-crop: 5
+    mipc: 300
+    ipc: 1
+    stud-name: "resnet18_modified"
+    re-epochs: 300
+    pipeline: "particle"

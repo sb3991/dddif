@@ -104,7 +104,7 @@ def init_images(args, model=None):
     paths_1 = [Dif_Dir] #Diffusion image
     # merge_datasets(paths_1, paths_2, output_path, args.mipc)
     # copy_random_images(Dif_Dir, output_path, args.mipc)
-    paths_4=[output_path]
+    paths_4 = [output_path]
 
 
     trainset = RDED_ImageFolder(
