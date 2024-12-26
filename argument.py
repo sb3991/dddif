@@ -198,6 +198,12 @@ parser.add_argument(
     default=8.0,
     help="cfg upper bound",
 )
+parser.add_argument(
+    "--dino",
+    type=bool,
+    default=False,
+    help="dino",
+)
 
 args = parser.parse_args()
 
@@ -308,7 +314,7 @@ if args.re_accum_steps != 1:
     args.re_batch_size = int(args.re_batch_size / args.re_accum_steps)
 
 # result dir for saving
-args.exp_name = f"{args.subset}_{args.arch_name}_stud{args.stud_name}_pipe_{args.pipeline}_f{args.factor}_mipc{args.mipc}_cr{args.num_crop}_str{args.strength_lb}-{args.strength_ub}_cfg{args.cfg_lb}-{args.cfg_ub}"
+args.exp_name = f"{args.subset}_{args.arch_name}_stud{args.stud_name}_pipe_{args.pipeline}_f{args.factor}_mipc{args.mipc}_cr{args.num_crop}_str{args.strength_lb}-{args.strength_ub}_cfg{args.cfg_lb}-{args.cfg_ub}--dino{args.dino}"
 if not os.path.exists(f"./exp/{args.exp_name}"):
     os.makedirs(f"./exp/{args.exp_name}")
 

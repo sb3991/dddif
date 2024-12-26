@@ -116,7 +116,7 @@ def get_max_image_size(image_root):
                     max_height = max(max_height, height)
     return max_width, max_height
 
-def objective_function(pipe,prompts, images, class_names, classifier_scale, negative_prompts, early_stage ,late_stage,teacher_model=None, args=None ,strength=0.0, guidance_scale=0.0):
+def objective_function(pipe,prompts, images, class_names, classifier_scale, negative_prompts, early_stage ,late_stage,dino=None,teacher_model=None, args=None ,strength=0.0, guidance_scale=0.0):
     transform = transforms.Compose([transforms.Resize(args.input_size)])
     images = transform(images)
     soft_mix_label_0 = teacher_model(images)
@@ -135,6 +135,7 @@ def objective_function(pipe,prompts, images, class_names, classifier_scale, nega
                     early_stage_end=early_stage,
                     late_stage_start=late_stage,
                     output_type=None,
+                    dino=dino,
                     #get_latent=True,
                     ).images
     gen_imgs = gen_imgs.transpose(0,3,1,2)
@@ -148,11 +149,10 @@ def objective_function(pipe,prompts, images, class_names, classifier_scale, nega
     return ret.cpu().item()
     
 
-def generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_steps, early_stage, late_stage ,teacher_model=None,args=None):
+def generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_steps, early_stage, late_stage ,dino=None,teacher_model=None,args=None):
     os.makedirs(output_dir, exist_ok=True)
     class_indices = {class_name: 0 for class_name in set([class_name for _, _, _, class_name in data_loader.dataset])}
     print("prompt_strength", prompt_strength, "classifier_scale", classifier_scale)
-    print(f'{pipe.scheduler}')
     while any(class_indices[class_name] < images_per_class for class_name in class_indices):
         for batch_idx, (images, prompts, negative_prompts, class_names) in tqdm.tqdm(enumerate(data_loader), total=len(data_loader), desc="Generating images"):
             images = images.to("cuda")
@@ -164,7 +164,7 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
                 obj_func = partial(objective_function,pipe=pipe,prompts=prompts, images=images, 
                                    class_names=class_names, classifier_scale=classifier_scale, 
                                    negative_prompts=negative_prompts, early_stage=early_stage,
-                                   late_stage=late_stage ,teacher_model=teacher_model, args=args)
+                                   late_stage=late_stage ,dino=dino, teacher_model=teacher_model, args=args)
                 pbounds = {
                     'strength': (args.strength_lb, args.strength_ub),      # Example range for guidance scale
                     'guidance_scale': (args.cfg_lb, args.cfg_ub)   # Example range for strength
@@ -314,6 +314,7 @@ def main(args):
     scheduler = DPMSolverMultistepScheduler.from_pretrained(model_id, subfolder="scheduler")
 
     unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet").half()
+    dino = None
     if args.pipeline != 'particle':
         pipe = LocalStableDiffusionPipeline.from_pretrained(
             model_id,
@@ -331,8 +332,9 @@ def main(args):
             saftey_checker=None,
             torch_dtype=torch.float16
         ).to("cuda")
+        if args.dino:
+            dino=torch.hub.load('facebookresearch/dino:main', 'dino_vits16').to("cuda")
     
-
     pipe.set_progress_bar_config(disable=True)
     prompt_strength=args.prompt_strength
     classifier_scale=args.classifier_scale
@@ -349,7 +351,7 @@ def main(args):
     for p in teacher_model.parameters():
         p.requires_grad = False
     
-    generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_step, early_stage, late_stage, teacher_model=teacher_model ,args=args)
+    generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_step, early_stage, late_stage,dino=dino, teacher_model=teacher_model ,args=args)
 
 if __name__ == "__main__":
     import argparse

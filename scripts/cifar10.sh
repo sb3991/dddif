@@ -7,4 +7,5 @@ python ./main.py \
 --ipc 50 \
 --stud-name "resnet18_modified" \
 --pipeline "particle" \
---re-epochs 1000
+--re-epochs 1000 \
+--dino True

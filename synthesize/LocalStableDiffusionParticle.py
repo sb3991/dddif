@@ -79,9 +79,10 @@ class StableDiffusionParticlePipeline(StableDiffusionImg2ImgPipeline):
         callback_steps: int = 1,
         cross_attention_kwargs: Optional[Dict[str, Any]] = None,
         dist = None,
-        coeff = 0.,
+        coeff = 0.2,
         S_noise = 1.,
         svgd=False,
+        dino=None,
         **kwargs,
     ):
         r"""
@@ -233,11 +234,58 @@ class StableDiffusionParticlePipeline(StableDiffusionImg2ImgPipeline):
 
                 sigma = all_sigmas[t.cpu().numpy()]
                 sigma = sigma.to(latents.device)
-
+                sigma_break = 3
                 # perform guidance
                 if do_classifier_free_guidance:
+                    if dino is not None:
+                        with torch.set_grad_enabled(True):
+                            latents.requires_grad_(True)
+                            alpha_prod_t = self.scheduler.alphas_cumprod[self.scheduler.timesteps[i].cpu().numpy()]
+                            alpha_prod_t.requires_grad_(True)
+                            beta_prod_t = torch.tensor(1.0, dtype=torch.float32) - alpha_prod_t
+                            beta_prod_t.requires_grad_(True)
+                            noise_pred = noise_pred_text + guidance_scale * (noise_pred_text - noise_pred_uncond)
+                            noise_pred.requires_grad_(True)
+                            # x_0 prediction
+                            pred_original_sample = (latents - beta_prod_t ** (0.5) * noise_pred) / alpha_prod_t ** (0.5)
+                            pred_original_sample.requires_grad_(True)
+                            # only do particle guidance when sigma > sigma_break, to save computation (NFE)
+                            grad_phi = torch.zeros_like(latents)
+                            if sigma > sigma_break:
+                                # decode
+                                # set dino require grad to True
+                                dino.requires_grad_(True)
+                                self.vae.decoder.requires_grad_(True)
+                                dino.train()
 
-                    if svgd:
+                                #x_pred = self.decode_latents(pred_original_sample)
+                                scaling_factor = torch.tensor(1 / self.vae.config.scaling_factor, dtype=pred_original_sample.dtype, device=pred_original_sample.device)
+
+                                dino_in = scaling_factor * pred_original_sample
+                                self.vae.train()
+                                for param in self.vae.parameters():
+                                    param.requires_grad = True
+                                x_pred = self.vae.decode(dino_in, return_dict=False)[0].float()
+                                dino_out = dino(x_pred)
+                                latents_vec = dino_out.view(len(dino_out), -1)
+                                # N x N x d
+                                diff = latents_vec.unsqueeze(1) - latents_vec.unsqueeze(0)
+
+                                # remove the diag, make distance with shape N x N-1 x 1
+                                diff = diff[~torch.eye(diff.shape[0], dtype=bool)].view(diff.shape[0], -1, diff.shape[-1])
+                                # N x N x 1
+                                distance = torch.norm(diff, p=2, dim=-1, keepdim=True)
+                                num_images = latents_vec.shape[0]
+                                h_t = (distance.median(dim=1, keepdim=True)[0]) ** 2 / np.log(
+                                    num_images - 1)
+                                weights = torch.exp(- (distance ** power / h_t))
+                            
+                                grad_phi = 2 * weights * diff / h_t * coeff
+                                grad_phi = grad_phi.sum(dim=1)
+                                eval_sum = torch.sum(dino_out * grad_phi.detach())
+                                deps_dx_backprop = torch.autograd.grad(eval_sum, latents)[0]
+                                grad_phi = deps_dx_backprop.view_as(latents)
+                    elif svgd:
                         scores = noise_pred_text + guidance_scale * (noise_pred_text - noise_pred_uncond)
                         #scores = noise_pred_text
                         scores_vec = - scores.view(len(scores), -1)
@@ -340,7 +388,9 @@ class StableDiffusionParticlePipeline(StableDiffusionImg2ImgPipeline):
 
     #@replace_example_docstring(EXAMPLE_DOC_STRING)
     def dino(
-        self,
+        self,        
+        image=None,
+        strength=0.8,
         prompt: Union[str, List[str]] = None,
         height: Optional[int] = None,
         width: Optional[int] = None,
@@ -363,75 +413,7 @@ class StableDiffusionParticlePipeline(StableDiffusionImg2ImgPipeline):
         coeff = 0.,
         dino=None,
     ):
-        r"""
-        Function invoked when calling the pipeline for generation.
 
-        Args:
-            prompt (`str` or `List[str]`, *optional*):
-                The prompt or prompts to guide the image generation. If not defined, one has to pass `prompt_embeds`.
-                instead.
-            height (`int`, *optional*, defaults to self.unet.config.sample_size * self.vae_scale_factor):
-                The height in pixels of the generated image.
-            width (`int`, *optional*, defaults to self.unet.config.sample_size * self.vae_scale_factor):
-                The width in pixels of the generated image.
-            num_inference_steps (`int`, *optional*, defaults to 50):
-                The number of denoising steps. More denoising steps usually lead to a higher quality image at the
-                expense of slower inference.
-            guidance_scale (`float`, *optional*, defaults to 7.5):
-                Guidance scale as defined in [Classifier-Free Diffusion Guidance](https://arxiv.org/abs/2207.12598).
-                `guidance_scale` is defined as `w` of equation 2. of [Imagen
-                Paper](https://arxiv.org/pdf/2205.11487.pdf). Guidance scale is enabled by setting `guidance_scale >
-                1`. Higher guidance scale encourages to generate images that are closely linked to the text `prompt`,
-                usually at the expense of lower image quality.
-            negative_prompt (`str` or `List[str]`, *optional*):
-                The prompt or prompts not to guide the image generation. If not defined, one has to pass
-                `negative_prompt_embeds` instead. Ignored when not using guidance (i.e., ignored if `guidance_scale` is
-                less than `1`).
-            num_images_per_prompt (`int`, *optional*, defaults to 1):
-                The number of images to generate per prompt.
-            eta (`float`, *optional*, defaults to 0.0):
-                Corresponds to parameter eta (η) in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to
-                [`schedulers.DDIMScheduler`], will be ignored for others.
-            generator (`torch.Generator` or `List[torch.Generator]`, *optional*):
-                One or a list of [torch generator(s)](https://pytorch.org/docs/stable/generated/torch.Generator.html)
-                to make generation deterministic.
-            latents (`torch.FloatTensor`, *optional*):
-                Pre-generated noisy latents, sampled from a Gaussian distribution, to be used as inputs for image
-                generation. Can be used to tweak the same generation with different prompts. If not provided, a latents
-                tensor will ge generated by sampling using the supplied random `generator`.
-            prompt_embeds (`torch.FloatTensor`, *optional*):
-                Pre-generated text embeddings. Can be used to easily tweak text inputs, *e.g.* prompt weighting. If not
-                provided, text embeddings will be generated from `prompt` input argument.
-            negative_prompt_embeds (`torch.FloatTensor`, *optional*):
-                Pre-generated negative text embeddings. Can be used to easily tweak text inputs, *e.g.* prompt
-                weighting. If not provided, negative_prompt_embeds will be generated from `negative_prompt` input
-                argument.
-            output_type (`str`, *optional*, defaults to `"pil"`):
-                The output format of the generate image. Choose between
-                [PIL](https://pillow.readthedocs.io/en/stable/): `PIL.Image.Image` or `np.array`.
-            return_dict (`bool`, *optional*, defaults to `True`):
-                Whether or not to return a [`~pipelines.stable_diffusion.StableDiffusionPipelineOutput`] instead of a
-                plain tuple.
-            callback (`Callable`, *optional*):
-                A function that will be called every `callback_steps` steps during inference. The function will be
-                called with the following arguments: `callback(step: int, timestep: int, latents: torch.FloatTensor)`.
-            callback_steps (`int`, *optional*, defaults to 1):
-                The frequency at which the `callback` function will be called. If not specified, the callback will be
-                called at every step.
-            cross_attention_kwargs (`dict`, *optional*):
-                A kwargs dictionary that if specified is passed along to the `AttentionProcessor` as defined under
-                `self.processor` in
-                [diffusers.cross_attention](https://github.com/huggingface/diffusers/blob/main/src/diffusers/models/cross_attention.py).
-
-        Examples:
-
-        Returns:
-            [`~pipelines.stable_diffusion.StableDiffusionPipelineOutput`] or `tuple`:
-            [`~pipelines.stable_diffusion.StableDiffusionPipelineOutput`] if `return_dict` is True, otherwise a `tuple.
-            When returning a tuple, the first element is a list with the generated images, and the second element is a
-            list of `bool`s denoting whether the corresponding generated image likely represents "not-safe-for-work"
-            (nsfw) content, according to the `safety_checker`.
-        """
         # 0. Default height and width to unet
 
         height = height or self.unet.config.sample_size * self.vae_scale_factor
