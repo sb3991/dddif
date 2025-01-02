@@ -200,8 +200,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--dino",
-    type=bool,
-    default=False,
+    type=str,
+    default='None',
     help="dino",
 )
 

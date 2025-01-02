@@ -116,7 +116,7 @@ def get_max_image_size(image_root):
                     max_height = max(max_height, height)
     return max_width, max_height
 
-def objective_function(pipe,prompts, images, class_names, classifier_scale, negative_prompts, early_stage ,late_stage,dino=None,teacher_model=None, args=None ,strength=0.0, guidance_scale=0.0):
+def objective_function(pipe,prompts, images, class_names, classifier_scale, negative_prompts, early_stage ,late_stage,dino=None,teacher_model=None, args=None ,strength=0.0, guidance_scale=0.0,**kwargs):
     transform = transforms.Compose([transforms.Resize(args.input_size)])
     images = transform(images)
     soft_mix_label_0 = teacher_model(images)
@@ -149,7 +149,7 @@ def objective_function(pipe,prompts, images, class_names, classifier_scale, nega
     return ret.cpu().item()
     
 
-def generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_steps, early_stage, late_stage ,dino=None,teacher_model=None,args=None):
+def generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_steps, early_stage, late_stage ,dino=None,teacher_model=None,args=None, **kwargs):
     os.makedirs(output_dir, exist_ok=True)
     class_indices = {class_name: 0 for class_name in set([class_name for _, _, _, class_name in data_loader.dataset])}
     print("prompt_strength", prompt_strength, "classifier_scale", classifier_scale)
@@ -314,7 +314,16 @@ def main(args):
     scheduler = DPMSolverMultistepScheduler.from_pretrained(model_id, subfolder="scheduler")
 
     unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet").half()
-    dino = None
+    dino,cfg = None , None
+    teacher_model = load_model(
+        model_name=args.arch_name,
+        dataset=args.subset,
+        pretrained=True,
+        classes=args.classes,
+        )
+
+    for p in teacher_model.parameters():
+        p.requires_grad = False
     if args.pipeline != 'particle':
         pipe = LocalStableDiffusionPipeline.from_pretrained(
             model_id,
@@ -332,30 +341,27 @@ def main(args):
             saftey_checker=None,
             torch_dtype=torch.float16
         ).to("cuda")
-        if args.dino:
+        if args.dino=='dino':
             dino=torch.hub.load('facebookresearch/dino:main', 'dino_vits16').to("cuda")
-    
+        elif args.dino=='cfg':
+            import copy
+            dino = copy.deepcopy(teacher_model)
+            dino.fc = nn.Identity()
+            dino = dino.to("cuda")
+    teacher_model = nn.DataParallel(teacher_model).cuda()
+    teacher_model.eval()      
+      
     pipe.set_progress_bar_config(disable=True)
     prompt_strength=args.prompt_strength
     classifier_scale=args.classifier_scale
     early_stage=args.early_stage
     late_stage=args.late_stage
-    teacher_model = load_model(
-        model_name=args.arch_name,
-        dataset=args.subset,
-        pretrained=True,
-        classes=args.classes,
-        )
-    teacher_model = nn.DataParallel(teacher_model).cuda()
-    teacher_model.eval()
-    for p in teacher_model.parameters():
-        p.requires_grad = False
+
     
     generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_step, early_stage, late_stage,dino=dino, teacher_model=teacher_model ,args=args)
 
 if __name__ == "__main__":
     import argparse
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--syn_data_path", type=str, required=True, help="Path to the root directory of images")
     parser.add_argument("--mipc", type=int, default=500, required=True, help="Number of images to generate per class")

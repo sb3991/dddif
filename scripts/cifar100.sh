@@ -7,4 +7,5 @@ python ./main.py \
 --ipc 1 \
 --stud-name "conv3" \
 --re-epochs 1000 \
---pipeline "particle"
+--pipeline "particle" \
+--dino "dino"

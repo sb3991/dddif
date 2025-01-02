@@ -4,8 +4,8 @@ python ./main.py \
 --factor 1 \
 --num-crop 5 \
 --mipc 300 \
---ipc 50 \
+--ipc 1 \
 --stud-name "resnet18_modified" \
 --pipeline "particle" \
 --re-epochs 1000 \
---dino True
+--dino "cfg"

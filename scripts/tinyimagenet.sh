@@ -6,5 +6,6 @@ python ./main.py \
 --mipc 300 \
 --ipc 10 \
 --stud-name "resnet18_modified" \
---re-epochs 1000 \
---pipeline "particle"
+--re-epochs 300 \
+--pipeline "particle" \
+--dino True

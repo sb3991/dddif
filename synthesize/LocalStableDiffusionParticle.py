@@ -270,7 +270,6 @@ class StableDiffusionParticlePipeline(StableDiffusionImg2ImgPipeline):
                                 latents_vec = dino_out.view(len(dino_out), -1)
                                 # N x N x d
                                 diff = latents_vec.unsqueeze(1) - latents_vec.unsqueeze(0)
-
                                 # remove the diag, make distance with shape N x N-1 x 1
                                 diff = diff[~torch.eye(diff.shape[0], dtype=bool)].view(diff.shape[0], -1, diff.shape[-1])
                                 # N x N x 1
