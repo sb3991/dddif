@@ -5,7 +5,6 @@ python ./main.py \
 --num-crop 5 \
 --mipc 300 \
 --ipc 1 \
---stud-name "resnet18_modified" \
+--stud-name "resnet101_modified" \
 --pipeline "particle" \
---re-epochs 1000 \
---dino "cfg"
+--re-epochs 1000

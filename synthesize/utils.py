@@ -321,7 +321,7 @@ def load_model(model_name="resnet18", dataset="cifar10", pretrained=True, classe
             print(f"Load pretrained model for {dataset}!")
             print(f"./data/pretrain_models/{dataset}_{model_name}.pth")
         elif dataset in ["imagenet-1k"]:
-            if model_name == "efficientNet-b0":
+            if model_name == "efficientnet_b0":
                 # Specifically, for loading the pre-trained EfficientNet model, the following modifications are made
                 from torchvision.models._api import WeightsEnum
                 from torch.hub import load_state_dict_from_url
@@ -413,7 +413,7 @@ def load_model_2(model_name="resnet18", dataset="cifar10", pretrained=True, clas
             print("Load New Classifier for woof!")
             model.load_state_dict(checkpoint)  # 여기서 checkpoint["model"]이 아니라 checkpoint 자체를 사용
         elif dataset in ["imagenet-1k"]:
-            if model_name == "efficientNet-b0":
+            if model_name == "efficientnet-b0":
                 # Specifically, for loading the pre-trained EfficientNet model, the following modifications are made
                 from torchvision.models._api import WeightsEnum
                 from torch.hub import load_state_dict_from_url

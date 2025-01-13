@@ -314,7 +314,7 @@ def main(args):
     scheduler = DPMSolverMultistepScheduler.from_pretrained(model_id, subfolder="scheduler")
 
     unet = UNet2DConditionModel.from_pretrained(model_id, subfolder="unet").half()
-    dino,cfg = None , None
+    dino = None
     teacher_model = load_model(
         model_name=args.arch_name,
         dataset=args.subset,
@@ -357,7 +357,6 @@ def main(args):
     early_stage=args.early_stage
     late_stage=args.late_stage
 
-    
     generate_images(data_loader, pipe, output_dir, image_size, images_per_class, classifier_scale, prompt_strength, inference_step, early_stage, late_stage,dino=dino, teacher_model=teacher_model ,args=args)
 
 if __name__ == "__main__":
