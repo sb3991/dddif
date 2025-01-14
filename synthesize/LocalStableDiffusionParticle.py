@@ -79,7 +79,7 @@ class StableDiffusionParticlePipeline(StableDiffusionImg2ImgPipeline):
         callback_steps: int = 1,
         cross_attention_kwargs: Optional[Dict[str, Any]] = None,
         dist = None,
-        coeff = 0.2,
+        coeff = 0.3,
         S_noise = 1.,
         svgd=False,
         dino=None,

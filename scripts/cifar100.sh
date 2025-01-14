@@ -1,10 +1,10 @@
 python ./main.py \
 --subset "cifar100" \
---arch-name "resnet18_modified" \
+--arch-name "conv3" \
 --factor 1 \
 --num-crop 5 \
 --mipc 500 \
---ipc 1 \
---stud-name "resnet101_modified" \
+--ipc 50 \
+--stud-name "conv3" \
 --re-epochs 1000 \
 --pipeline "particle" \

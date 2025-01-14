@@ -183,13 +183,13 @@ parser.add_argument(
 parser.add_argument(
     "--strength_ub",
     type=float,
-    default=1.0,
+    default=0.9,
     help="strength upper bound",
 )
 parser.add_argument(
     "--cfg_lb",
     type=float,
-    default=4.0,
+    default=3.0,
     help="cfg lower bound",
 )
 parser.add_argument( 
