@@ -305,6 +305,9 @@ if args.re_batch_size == 0:
     if args.subset == "tinyimagenet":
         args.re_batch_size = 100
 
+    ###########
+    if args.arch_name == "swin_v2_t":
+        args.re_batch_size = 128
 # reset batch size below ipc * nclass
 if args.re_batch_size > args.ipc * args.nclass:
     args.re_batch_size = int(args.ipc * args.nclass)

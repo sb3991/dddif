@@ -178,7 +178,7 @@ def generate_images(data_loader, pipe, output_dir, image_size, images_per_class,
 
                 # Run optimization
                 optimizer.maximize(
-                    init_points=20,         # Number of random initial samples
+                    init_points=10,         # Number of random initial samples
                     n_iter=5,             # Number of optimization iterations
                 )
                 # Print the best parameters
