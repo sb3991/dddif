@@ -1,11 +1,5 @@
 # On the Diversity and Realism of Distilled Dataset: An Efficient Dataset Distillation Paradigm
 
-[Peng Sun](https://sp12138.github.io/), Bei Shi, Daiwei Yu, [Tao Lin](https://tlin-taolin.github.io/)
-
-[`arXiv`](https://arxiv.org/abs/2312.03526) | [`BibTeX`](#bibliography)
-
-This is an official PyTorch implementation of the paper **On the Diversity and Realism of Distilled Dataset: An Efficient Dataset Distillation Paradigm (Preprint 2023)**. In this work, we:
-
 - We delineate three key objectives for effective dataset distillation on large-scale high-resolution datasets: realism, diversity, and efficiency.
 - We introduce the compression rate of information and a realism score backed by $\mathcal{V}$-information theory, together with an optimization-free efficient paradigm, to condense diverse and realistic data.
 - Extensive experiments substantiate the effectiveness of our method: it can distill the full ImageNet-1K to a small dataset comprising 10 images per class within 7 minutes, achieving a notable 42% top-1 accuracy with ResNet-18 on a single RTX-4090 GPU (while the SOTA only achieves 21% but requires 6 hours).
